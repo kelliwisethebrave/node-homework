@@ -38,9 +38,9 @@ fs.readFile(filePath, "utf-8", (error, data) => {
 async function readFileAsyncAwait() {
   try {
     const data = await fs.promises.readFile(filePath, "utf-8");
-    console.log("Async/await read:", data);
+    console.log("Async/Await read:", data);
   } catch (error) {
-    console.error("Async/await error:", error);
+    console.error("Async/Await error:", error);
     return;
   }
 }
