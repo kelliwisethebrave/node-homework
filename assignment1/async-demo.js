@@ -21,17 +21,42 @@ fs.readFile(filePath, "utf-8", (error, data) => {
 });
 
 // Callback hell example (test and leave it in comments):
+// Callback hell happens when each async step is nested inside the
+// previous callback. This can become hard to read and maintain.
+
+// fs.readFile(filePath, "utf-8", (error, data) => {
+//   if (error) {
+//     console.error(error);
+//     return;
+//   }
+//
+//   fs.writeFile(filePath, data, (error) => {
+//     if (error) {
+//       console.error(error);
+//       return;
+//     }
+//
+//     fs.readFile(filePath, "utf-8", (error, updatedData) => {
+//       if (error) {
+//         console.error(error);
+//         return;
+//       }
+//
+//       console.log(updatedData);
+//     });
+//   });
+// });
 
 // 2. Promise style
 
-fs.readFile(filePath, "utf-8", (error, data) => {
-  try {
+fs.promises
+  .readFile(filePath, "utf-8")
+  .then((data) => {
     console.log("Promise read:", data);
-  } catch (error) {
+  })
+  .catch((error) => {
     console.error("Promise error:", error);
-    return;
-  }
-});
+  });
 
 // 3. Async/Await style
 

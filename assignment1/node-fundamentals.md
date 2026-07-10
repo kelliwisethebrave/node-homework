@@ -10,7 +10,7 @@ Node.js differs from running JavaScript in the browser by allowing us to do thin
 
 ## What is the V8 engine, and how does Node use it?
 
-The V8 engine is a tool that originated in Google Chrome, which takes JavaScript and translates it into instructions that a computer ounderstands. Node uses it to run JavaScript and add extra functionality like accessing files and networks.
+The V8 engine is a tool that originated in Google Chrome, which takes JavaScript and translates it into instructions that a computer understands. Node uses it to run JavaScript and add extra functionality like accessing files and networks.
 
 ## What are some key use cases for Node.js?
 
@@ -23,14 +23,14 @@ The difference between CommonJS and ES Modules is that CommonJS uses require() a
 **CommonJS (default in Node.js):**
 
 ```js
-subtractfile;
+//subtractfile.js
 function subtract(a, b) {
   return a - b;
 }
 
 module.exports = { subtract };
 
-appfile;
+//appfile.js
 const { subtract } = require("./subtractfile");
 
 console.log(subtract(3, 1));
@@ -39,13 +39,13 @@ console.log(subtract(3, 1));
 **ES Modules (supported in modern Node.js):**
 
 ```js
-subtractfile;
+//subtractfile.js
 export function subtract(a, b) {
   return a - b;
 }
 
-appfile;
-import { subtract } from "./subtractfile";
+//appfile.js
+import { subtract } from "./subtractfile.js";
 
 console.log(subtract(3, 1));
 ```
