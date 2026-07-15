@@ -19,4 +19,8 @@ const server = app.listen(port, () => {
   console.log(`Server is listening on port ${port}...`);
 });
 
+const timeRouter = require("./routes/timeRoutes.js");
+
+app.use("/api", timeRouter);
+
 module.exports = { app, server };

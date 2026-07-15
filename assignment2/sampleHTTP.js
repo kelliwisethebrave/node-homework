@@ -62,14 +62,23 @@ const server = http.createServer((req, res) => {
     });
 
     req.on("end", () => {
-      const parsedBody = JSON.parse(body);
+      try {
+        const parsedBody = JSON.parse(body);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          weReceived: parsedBody,
-        }),
-      );
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            weReceived: parsedBody,
+          }),
+        );
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            message: "Invalid JSON.",
+          }),
+        );
+      }
     });
   } else {
     res.writeHead(404, { "Content-Type": "application/json" });
