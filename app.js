@@ -23,4 +23,10 @@ const timeRouter = require("./routes/timeRoutes.js");
 
 app.use("/api", timeRouter);
 
+app.all("/*splat", (req, res) => {
+  res.status(404).json({
+    message: `No route found for ${req.method} ${req.path}`,
+  });
+});
+
 module.exports = { app, server };
