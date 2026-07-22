@@ -17,6 +17,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}]: ${req.method} ${req.path} (${req.requestId})`);
+  next();
+});
+
 app.use("/", dogsRouter); // Do not remove this line
 
 if (require.main === module) {
