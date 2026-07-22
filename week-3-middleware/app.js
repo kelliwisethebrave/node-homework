@@ -25,6 +25,18 @@ app.use((req, res, next) => {
 
 app.use("/", dogsRouter); // Do not remove this line
 
+//notFound
+app.use((req, res, next) => {
+  res.status(404).json({ error: "Route not found", requestId: req.requestId });
+});
+
+//errorHandler
+app.use((err, req, res, next) => {
+  res
+    .status(500)
+    .json({ error: "Internal Server Error", requestId: req.requestId });
+});
+
 if (require.main === module) {
   app.listen(3000, () => {
     console.log("Dog rescue app is listening on port 3000...");
