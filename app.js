@@ -23,6 +23,14 @@ app.post("/testpost", (req, res) => {
 
 app.use("/api/users", userRouter);
 
+//Week 2 timeRouter
+//const timeRouter = require("./routes/timeRoutes.js");
+//app.use("/api", timeRouter);
+
+app.use(notFound);
+
+app.use(errorHandler);
+
 const port = process.env.PORT || 3000;
 
 const server = app.listen(port, () => {
@@ -38,14 +46,7 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
-const timeRouter = require("./routes/timeRoutes.js");
-
-app.use("/api", timeRouter);
-
-app.use(notFound);
-
-app.use(errorHandler);
-
+//SHUTDOWN CODE
 let isShuttingDown = false;
 
 async function shutdown(code = 0) {
