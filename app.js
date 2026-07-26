@@ -2,6 +2,8 @@ const express = require("express");
 const userRouter = require("./routes/userRoutes.js");
 const notFound = require("./middleware/not-found.js");
 const errorHandler = require("./middleware/error-handler.js");
+const authMiddleware = require("./middleware/auth.js");
+const taskRouter = require("./routes/taskRoutes");
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.post("/testpost", (req, res) => {
 });
 
 app.use("/api/users", userRouter);
+
+app.use("/api/tasks", authMiddleware, taskRouter);
 
 //Week 2 timeRouter
 //const timeRouter = require("./routes/timeRoutes.js");
