@@ -1,5 +1,13 @@
 const express = require("express");
+const userRouter = require("./routes/userRoutes.js");
+const notFound = require("./middleware/not-found.js");
+const errorHandler = require("./middleware/error-handler.js");
+
 const app = express();
+
+global.user_id = null;
+global.users = [];
+global.tasks = [];
 
 app.use(express.json());
 
@@ -12,6 +20,16 @@ app.post("/testpost", (req, res) => {
     message: "POST route works",
   });
 });
+
+app.use("/api/users", userRouter);
+
+//Week 2 timeRouter
+//const timeRouter = require("./routes/timeRoutes.js");
+//app.use("/api", timeRouter);
+
+app.use(notFound);
+
+app.use(errorHandler);
 
 const port = process.env.PORT || 3000;
 
@@ -28,16 +46,7 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
-const timeRouter = require("./routes/timeRoutes.js");
-
-app.use("/api", timeRouter);
-
-app.all("/*splat", (req, res) => {
-  res.status(404).json({
-    message: `No route found for ${req.method} ${req.path}`,
-  });
-});
-
+//SHUTDOWN CODE
 let isShuttingDown = false;
 
 async function shutdown(code = 0) {
