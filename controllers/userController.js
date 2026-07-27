@@ -1,6 +1,15 @@
+const { userSchema } = require("../validation/userSchema.js");
+
 function register(req, res) {
-  const { name, email, password } = req.body;
-  const newUser = { name: name, email: email, password: password };
+  if (!req.body) req.body = {};
+  const { error, value } = userSchema.validate(req.body, { abortEarly: false });
+  if (error) return res.status(400).json();
+  //const { name, email, password } = req.body;
+  const newUser = {
+    name: value.name,
+    email: value.email,
+    password: value.password,
+  };
   global.users.push(newUser);
   global.user_id = newUser;
   res.status(201).json({
