@@ -28,6 +28,8 @@ SELECT product_id FROM products ORDER BY price ASC, product_id ASC LIMIT 5;
 
 BEGIN;
 INSERT into orders (customer_id, employee_id, date) VALUES (16, 7, '2026-08-05') RETURNING order_id;
+# 250 is the order_id returned by the INSERT above when tested manually.
+# The TDD substitutes its own returned order_id when running the test.
 INSERT into line_items (order_id, product_id, quantity) VALUES (250, 23, 10), (250, 18, 10), (250, 43, 10), (250, 9, 10), (250, 44, 10);
 
 COMMIT;
