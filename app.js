@@ -10,8 +10,6 @@ const app = express();
 const pool = require("./db/pg-pool.js");
 
 global.user_id = null;
-global.users = [];
-global.tasks = [];
 
 app.use(express.json());
 
