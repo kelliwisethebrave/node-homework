@@ -32,11 +32,11 @@ INSERT into line_items (order_id, product_id, quantity) VALUES (250, 23, 10), (2
 
 COMMIT;
 
-SELECT line_item_id FROM line_items WHERE order_id = 250;
+SELECT * FROM line_items WHERE order_id = 250;
 
 #4
 # find all employees who have more than 5 order_totals
 # return first_name, last_name, and the count of orders as order_count
 # sort the results by last_name (ORDER BY)
 
-SELECT employees.first_name, employees.last_name, COUNT(order_id) AS order_count FROM employees JOIN orders ON employees.employee_id = orders.employee_id GROUP BY employees.employee_id, first_name, last_name HAVING COUNT(orders.order_id) > 5 ORDER BY employees.last_name;
+SELECT employees.first_name, employees.last_name, COUNT(orders.order_id) AS order_count FROM employees JOIN orders ON employees.employee_id = orders.employee_id GROUP BY employees.employee_id, first_name, last_name HAVING COUNT(orders.order_id) > 5 ORDER BY employees.last_name;
