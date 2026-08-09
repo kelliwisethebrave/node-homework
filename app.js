@@ -7,9 +7,9 @@ const taskRouter = require("./routes/taskRoutes.js");
 
 const app = express();
 
+const pool = require("./db/pg-pool.js");
+
 global.user_id = null;
-global.users = [];
-global.tasks = [];
 
 app.use(express.json());
 
@@ -21,6 +21,17 @@ app.post("/testpost", (req, res) => {
   res.status(200).json({
     message: "POST route works",
   });
+});
+
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ status: "ok", db: "connected" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: `db not connected, error: ${err.message}` });
+  }
 });
 
 app.use("/api/users", userRouter);
@@ -67,6 +78,8 @@ async function shutdown(code = 0) {
       });
     });
     console.log("HTTP server closed.");
+
+    await pool.end();
   } catch (err) {
     console.error("Error during shutdown:", err);
     code = 1;
