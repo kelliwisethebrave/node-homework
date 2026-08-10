@@ -119,7 +119,7 @@ async function show(req, res) {
   return res.status(200).json(matchingTask);
 }
 
-async function update(req, res) {
+async function update(req, res, next) {
   //validate the patch body
   if (!req.body) req.body = {};
   const { error, value } = patchTaskSchema.validate(req.body, {
@@ -130,57 +130,35 @@ async function update(req, res) {
       message: error.message,
     });
 
-  const taskId = parseInt(req.params?.id);
+  const id = parseInt(req.params?.id);
 
-  if (!taskId) {
+  if (!id) {
     return res.status(400).json({
       message: "The task ID passed is not valid.",
     });
   }
 
-  const taskChange = value;
-
-  let keys = Object.keys(taskChange);
-  keys = keys.map((key) => (key === "isCompleted" ? "is_completed" : key));
-
-  const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(", ");
-  const idParm = `$${keys.length + 1}`;
-  const userParm = `$${keys.length + 2}`;
-
-  const updatedTask = await pool.query(
-    `UPDATE tasks SET ${setClauses} 
-  WHERE id = ${idParm} AND user_id = ${userParm} RETURNING id, title, is_completed`,
-    [...Object.values(taskChange), req.params.id, global.user_id],
-  );
-
-  //read req.params.id (convert req.params.id to a number)
-
-  // find a task with that ID and the current user's email
-  // const matchingTask = global.tasks.find((task) => {
-  //   return task.id === taskId && task.userId === global.user_id.email;
-  // });
-
-  //merge the validated patch fields into the stored task
-  // if (!matchingTask) {
-  //   return res.status(404).json({
-  //     message: "No matching task exists.",
-  //   });
-  // }
-
-  // Object.assign(matchingTask, value);
-
-  //return the updated task without userId
-  //const { userId, ...sanitizedTask } = matchingTask; //this removes userId from a new object called sanitizedTask
-
-  if (updatedTask.rows.length === 0) {
-    return res.status(404).json({
-      message: "No matching task exists.",
+  // assuming that value contains the validated change coming back from Joi, and that
+  // you have a valid req.params.id:
+  let task = null;
+  try {
+    task = await prisma.task.update({
+      data: value,
+      where: {
+        id,
+        userId: global.user_id,
+      },
+      select: { title: true, isCompleted: true, id: true },
     });
+  } catch (err) {
+    if (err.code === "P2025") {
+      return res.status(404).json({ message: "The task was not found." });
+    } else {
+      return next(err); // pass other errors to the global error handler
+    }
   }
 
-  return res.status(200).json(updatedTask.rows[0]);
-  //use this pattern to merge patch fields:
-  //Object.assign(task, value);
+  return res.status(200).json(task);
 }
 
 async function deleteTask(req, res) {
