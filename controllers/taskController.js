@@ -1,15 +1,14 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
 
-const pool = require("../db/pg-pool.js");
 const prisma = require("../db/prisma.js");
 
-const taskCounter = (() => {
-  let lastTaskNumber = 0;
-  return () => {
-    lastTaskNumber += 1;
-    return lastTaskNumber;
-  };
-})();
+// const taskCounter = (() => {
+//   let lastTaskNumber = 0;
+//   return () => {
+//     lastTaskNumber += 1;
+//     return lastTaskNumber;
+//   };
+// })();
 
 //use for functions that use an ID
 //const taskId = parseInt(req.params?.id);
