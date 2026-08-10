@@ -4,6 +4,7 @@ const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
 
 const pool = require("../db/pg-pool.js");
+const prisma = require("../db/prisma.js");
 
 //helper functions
 
@@ -21,6 +22,7 @@ async function comparePassword(inputPassword, storedHash) {
 }
 
 async function register(req, res, next) {
+  // Do the Joi validation, so that value contains the user entry you want.
   if (!req.body) req.body = {};
   const { error, value } = userSchema.validate(req.body, { abortEarly: false });
   if (error)
@@ -29,37 +31,34 @@ async function register(req, res, next) {
       details: error.details,
     });
 
-  let user = null;
-
+  // hash the password, and put it in value.hashedPassword
   //const hashedPassword = await hashPassword(value.password);
-  value.hashed_password = await hashPassword(value.password);
-  //const newUser = {
-  //  name: value.name,
-  //  email: value.email,
-  //  hashedPassword,
-  //};
+  value.hashedPassword = await hashPassword(value.password);
+  // delete value.password as that doesn't get stored
+  delete value.password; // not necessary since the provided code "deletes" it from what Prisma gets
 
-  //global.users.push(newUser);
+  const { name, email, hashedPassword } = value;
+
+  let user = null;
   try {
-    user = await pool.query(
-      `INSERT INTO users (email, name, hashed_password) VALUES ($1, $2, $3) RETURNING id, email, name`,
-      [value.email, value.name, value.hashed_password],
-    ); //note that you use a parameterized query
-  } catch (e) {
-    //the email might already be registered
-    if (e.code === "23505") {
-      // this means the unique constraint for email was violated
-      // here you return the 400 and the error message.  Use a return statement, so that
-      // you don't keep going in this function
+    user = await prisma.user.create({
+      data: { name, email, hashedPassword },
+      select: { name: true, email: true, id: true }, //specify the column values to return
+    });
+  } catch (err) {
+    if (err.name === "PrismaClientKnownRequestError" && err.code === "P2002") {
       return res.status(400).json({
         message: "Email already registered with a user.",
       });
+    } else {
+      return next(err); //the error handler takes care of other errors
     }
-    return next(e); // all other errors get passed to the error handler
-  } // otherwise user now contains the new user.  You can return a 201 and the appropriate
-  // object.  Be sure to also set global.user_id with the id of the user record you just created.
+  }
 
-  const newUser = user.rows[0];
+  // otherwise register succeeded, so set global.user_id with user.id, and do the
+  // appropriate res.status().json().
+
+  const newUser = user;
 
   global.user_id = newUser.id;
   res.status(201).json({
@@ -69,23 +68,24 @@ async function register(req, res, next) {
 }
 
 async function logon(req, res) {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
+
+  email = email.toLowerCase(); // Joi validation always converts the email to lowercase
+  //but you don't want logon to fail if the user types mixed case
+  const user = await prisma.user.findUnique({ where: { email } });
+  // also Prisma findUnique can't do a case insensitive search
+
   //find the first user where user.email matches the email from req.body
   //AND user.password matches the password from req.body
   //const matchingUser = global.users.find((user) => {
   //  return user.email === email;
   //});
 
-  //this replaces .find() above
-  const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-    email,
-  ]);
-
-  const matchingUser = result.rows[0];
+  const matchingUser = user;
 
   const goodCredentials =
     matchingUser &&
-    (await comparePassword(password, matchingUser.hashed_password));
+    (await comparePassword(password, matchingUser.hashedPassword));
 
   // replace matchingUser below with goodCredentials
   if (goodCredentials) {
