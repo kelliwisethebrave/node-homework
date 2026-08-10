@@ -20,7 +20,7 @@ const taskCounter = (() => {
 //   });
 // }
 
-async function create(req, res) {
+async function create(req, res, next) {
   //validate the request body
   if (!req.body) req.body = {};
   const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
@@ -31,12 +31,17 @@ async function create(req, res) {
 
   // you do your Joi validation, and you have a validated task object. Then:
 
-  const task = await pool.query(
-    `INSERT INTO tasks (title, is_completed, user_id) 
-    VALUES ($1, $2, $3) 
-    RETURNING id, title, is_completed`,
-    [value.title, value.isCompleted, global.user_id],
-  );
+  let task = null;
+
+  try {
+    task = await prisma.task.create({
+      data: { ...value, userId: global.user_id },
+      select: { title: true, isCompleted: true, id: true },
+    });
+  } catch (err) {
+    return next(err);
+  }
+
   // You don't need a try/catch because the global error handler will handle the errors
 
   //create a task with an ID
@@ -47,7 +52,7 @@ async function create(req, res) {
   //return status 201
   //return the task without the userId
   //const { userId, ...sanitizedTask } = newTask; //this removes userId from a new object called sanitizedTask
-  return res.status(201).json(task.rows[0]);
+  return res.status(201).json(task);
 }
 
 async function index(req, res) {
@@ -56,14 +61,16 @@ async function index(req, res) {
   //  return task.userId === global.user_id.email;
   //});
 
-  const tasks = await pool.query(
-    "SELECT id, title, is_completed FROM tasks WHERE user_id = $1",
-    [global.user_id],
-  );
+  const tasks = await prisma.task.findMany({
+    where: {
+      userId: global.user_id, //only the tasks for this user
+    },
+    select: { title: true, isCompleted: true, id: true },
+  });
 
   //return 404 if this user has no tasks
 
-  const userTasks = tasks.rows;
+  const userTasks = tasks;
   if (userTasks.length === 0) {
     return res.status(404).json({
       message: "User has no tasks.",

@@ -3,7 +3,6 @@ const crypto = require("crypto");
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
 
-const pool = require("../db/pg-pool.js");
 const prisma = require("../db/prisma.js");
 
 //helper functions
