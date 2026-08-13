@@ -97,7 +97,12 @@ async function show(req, res, next) {
   let task = null;
   try {
     task = await prisma.task.findUnique({
-      where: { userId: global.user_id, id: taskId },
+      where: {
+        id_userId: {
+          id: taskId,
+          userId: global.user_id,
+        },
+      },
       select: { title: true, isCompleted: true, id: true },
     });
   } catch (err) {
@@ -128,9 +133,9 @@ async function update(req, res, next) {
       message: error.message,
     });
 
-  const id = parseInt(req.params?.id);
+  const taskId = parseInt(req.params?.id);
 
-  if (!id) {
+  if (!taskId) {
     return res.status(400).json({
       message: "The task ID passed is not valid.",
     });
@@ -143,8 +148,10 @@ async function update(req, res, next) {
     task = await prisma.task.update({
       data: value,
       where: {
-        id,
-        userId: global.user_id,
+        id_userId: {
+          id: taskId,
+          userId: global.user_id,
+        },
       },
       select: { title: true, isCompleted: true, id: true },
     });
@@ -173,8 +180,10 @@ async function deleteTask(req, res, next) {
   try {
     task = await prisma.task.delete({
       where: {
-        id: taskId,
-        userId: global.user_id,
+        id_userId: {
+          id: taskId,
+          userId: global.user_id,
+        },
       },
       select: { title: true, isCompleted: true, id: true },
     });
