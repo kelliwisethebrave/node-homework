@@ -69,6 +69,10 @@ async function register(req, res, next) {
 async function logon(req, res) {
   let { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
+
   email = email.toLowerCase(); // Joi validation always converts the email to lowercase
   //but you don't want logon to fail if the user types mixed case
   const user = await prisma.user.findUnique({ where: { email } });
