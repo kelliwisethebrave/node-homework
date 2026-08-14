@@ -35,7 +35,7 @@ async function create(req, res, next) {
   try {
     task = await prisma.task.create({
       data: { ...value, userId: global.user_id },
-      select: { title: true, isCompleted: true, id: true },
+      select: { title: true, isCompleted: true, id: true, priority: true },
     });
   } catch (err) {
     return next(err);
