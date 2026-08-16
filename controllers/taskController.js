@@ -55,15 +55,47 @@ async function create(req, res, next) {
 }
 
 async function index(req, res) {
-  //find the tasks owned by the logged-in user
-  //const userTasks = global.tasks.filter((task) => {
-  //  return task.userId === global.user_id.email;
-  //});
+  //pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const whereClause = { userId: global.user_id };
+
+  if (req.query.find) {
+    whereClause.title = {
+      contains: req.query.find, // matches %find% pattern
+      mode: "insensitive", // case-insensitive search ILIKE in PostgreSQL
+    };
+  }
+
+  if (req.query.isCompleted !== undefined) {
+    whereClause.isCompleted = req.query.isCompleted === "true";
+  }
+
+  if (
+    req.query.priority &&
+    ["low", "medium", "high"].includes(req.query.priority)
+  ) {
+    whereClause.priority = req.query.priority;
+  }
+
+  if (req.query.min_date) {
+    whereClause.createdAt = {
+      gte: new Date(req.query.min_date),
+    };
+  }
+
+  if (req.query.max_date) {
+    whereClause.createdAt = {
+      lte: new Date(req.query.max_date),
+    };
+  }
+
+  //get tasks with pagination and eager loading
 
   const tasks = await prisma.task.findMany({
-    where: {
-      userId: global.user_id, //only the tasks for this user
-    },
+    where: whereClause, //only the tasks for  this user
     select: {
       id: true,
       title: true,
@@ -77,23 +109,35 @@ async function index(req, res) {
         },
       },
     },
+    skip: skip,
+    take: limit,
+    orderBy: { createdAt: "desc" },
   });
 
-  //return 404 if this user has no tasks
+  //get total count for pagination metadata
+  const totalTasks = await prisma.task.count({
+    where: whereClause,
+  });
 
-  const userTasks = tasks;
-  if (userTasks.length === 0) {
-    return res.status(404).json({
-      message: "User has no tasks.",
-    });
-  }
-  //return those tasks without userId
-  //const sanitizedUserTasks = userTasks.map((task) => {
-  //  const { userId, ...sanitizedTask } = task;
-  //  return sanitizedTask;
-  //});
+  // Build pagination object with complete metadata
+  // Hint: the test expects page, limit, total, pages, hasNext, hasPrev
+  // Use Math.ceil() to calculate pages, and compare page * limit with total for hasNext
 
-  return res.status(200).json(userTasks);
+  const pagination = {
+    page,
+    limit,
+    total: totalTasks,
+    pages: Math.ceil(totalTasks / limit),
+    hasNext: page * limit < totalTasks,
+    hasPrev: page > 1,
+  };
+
+  //return tasks with pagination information
+  return res.status(200).json({
+    // ... you need to return tasks and pagination
+    tasks,
+    pagination,
+  });
 }
 
 async function show(req, res, next) {
