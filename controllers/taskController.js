@@ -10,6 +10,24 @@ const prisma = require("../db/prisma.js");
 //   };
 // })();
 
+//getOrderBy is a helper function that builds the orderBy object from query parameters
+const getOrderBy = (query) => {
+  const validSortFields = [
+    "title",
+    "priority",
+    "createdAt",
+    "id",
+    "isCompleted",
+  ];
+  const sortBy = query.sortBy || "createdAt";
+  const sortDirection = query.sortDirection === "asc" ? "asc" : "desc";
+
+  if (validSortFields.includes(sortBy)) {
+    return { [sortBy]: sortDirection };
+  }
+  return { createdAt: "desc" }; // default fallback
+};
+
 //use for functions that use an ID
 //const taskId = parseInt(req.params?.id);
 
@@ -111,7 +129,7 @@ async function index(req, res) {
     },
     skip: skip,
     take: limit,
-    orderBy: { createdAt: "desc" },
+    orderBy: getOrderBy(req.query), // default behavior { createdAt: "desc" }
   });
 
   //get total count for pagination metadata
