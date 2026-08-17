@@ -320,4 +320,4 @@ async function deleteTask(req, res, next) {
   return res.status(200).json(task);
 }
 
-module.exports = { create, index, show, update, deleteTask };
+module.exports = { create, bulkCreate, index, show, update, deleteTask };
