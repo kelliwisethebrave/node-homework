@@ -98,16 +98,16 @@ async function index(req, res) {
     whereClause.priority = req.query.priority;
   }
 
-  if (req.query.min_date) {
-    whereClause.createdAt = {
-      gte: new Date(req.query.min_date),
-    };
-  }
+  if (req.query.min_date || req.query.max_date) {
+    whereClause.createdAt = {};
 
-  if (req.query.max_date) {
-    whereClause.createdAt = {
-      lte: new Date(req.query.max_date),
-    };
+    if (req.query.min_date) {
+      whereClause.createdAt.gte = new Date(req.query.min_date);
+    }
+
+    if (req.query.max_date) {
+      whereClause.createdAt.lte = new Date(req.query.max_date);
+    }
   }
 
   //get tasks with pagination and eager loading
