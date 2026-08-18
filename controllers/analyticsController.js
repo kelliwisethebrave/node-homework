@@ -74,6 +74,13 @@ async function getUsersWithStats(req, res) {
   // hint: parse page and limit from req.query, calculate skip
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
+  // validate page and limit
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1 || limit > 100) {
+    return res.status(400).json({
+      error: "Invalid pagination parameters.",
+    });
+  }
+
   const skip = (page - 1) * limit;
 
   // get users with task counts using _count aggregation

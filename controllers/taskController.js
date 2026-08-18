@@ -124,6 +124,13 @@ async function index(req, res) {
   //pagination
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
+  // validate page and limit
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1 || limit > 100) {
+    return res.status(400).json({
+      error: "Invalid pagination parameters.",
+    });
+  }
+
   const skip = (page - 1) * limit;
 
   const whereClause = { userId: global.user_id };
@@ -160,7 +167,7 @@ async function index(req, res) {
 
   //get tasks with pagination and eager loading
 
-  const tasks = await prisma.task.findMany({
+  const tasksRaw = await prisma.task.findMany({
     where: whereClause, //only the tasks for  this user
     select: {
       id: true,
@@ -168,7 +175,7 @@ async function index(req, res) {
       isCompleted: true,
       priority: true,
       createdAt: true,
-      User: {
+      user: {
         select: {
           name: true,
           email: true,
@@ -179,6 +186,14 @@ async function index(req, res) {
     take: limit,
     orderBy: getOrderBy(req.query), // default behavior { createdAt: "desc" }
   });
+
+  const tasks = tasksRaw.map((task) => ({
+    // copy the task's fields
+    // add User: task.user
+
+    ...task,
+    User: task.user,
+  }));
 
   //get total count for pagination metadata
   const totalTasks = await prisma.task.count({

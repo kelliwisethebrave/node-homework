@@ -56,7 +56,7 @@ async function register(req, res, next) {
         { title: "Add your first task", userId: newUser.id, priority: "high" },
         { title: "Explore the app", userId: newUser.id, priority: "low" },
       ];
-      await tx.task.createMany({ date: welcomeTaskData });
+      await tx.task.createMany({ data: welcomeTaskData });
 
       // fetch the created tasks to return them
       const welcomeTasks = await tx.task.findMany({
