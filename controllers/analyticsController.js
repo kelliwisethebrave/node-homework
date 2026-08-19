@@ -104,7 +104,7 @@ async function getUsersWithStats(req, res) {
     orderBy: { createdAt: "desc" },
   });
 
-  // transform to only include the fields we want
+  // Transform to only include the fields we want
   const users = usersRaw.map((user) => ({
     id: user.id,
     name: user.name,

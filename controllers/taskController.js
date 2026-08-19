@@ -167,7 +167,7 @@ async function index(req, res) {
 
   //get tasks with pagination and eager loading
 
-  const tasksRaw = await prisma.task.findMany({
+  const tasks = await prisma.task.findMany({
     where: whereClause, //only the tasks for  this user
     select: {
       id: true,
@@ -175,7 +175,7 @@ async function index(req, res) {
       isCompleted: true,
       priority: true,
       createdAt: true,
-      user: {
+      User: {
         select: {
           name: true,
           email: true,
@@ -186,14 +186,6 @@ async function index(req, res) {
     take: limit,
     orderBy: getOrderBy(req.query), // default behavior { createdAt: "desc" }
   });
-
-  const tasks = tasksRaw.map((task) => ({
-    // copy the task's fields
-    // add User: task.user
-
-    ...task,
-    User: task.user,
-  }));
 
   //get total count for pagination metadata
   const totalTasks = await prisma.task.count({
@@ -240,7 +232,19 @@ async function show(req, res, next) {
           userId: global.user_id,
         },
       },
-      select: { title: true, isCompleted: true, id: true },
+      select: {
+        id: true,
+        title: true,
+        isCompleted: true,
+        priority: true,
+        createdAt: true,
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
   } catch (err) {
     if (err.code === "P2025") {
@@ -290,7 +294,7 @@ async function update(req, res, next) {
           userId: global.user_id,
         },
       },
-      select: { title: true, isCompleted: true, id: true },
+      select: { title: true, isCompleted: true, id: true, priority: true },
     });
   } catch (err) {
     if (err.code === "P2025") {
