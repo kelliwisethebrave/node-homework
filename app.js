@@ -4,6 +4,7 @@ const notFound = require("./middleware/not-found.js");
 const errorHandler = require("./middleware/error-handler.js");
 const authMiddleware = require("./middleware/auth.js");
 const taskRouter = require("./routes/taskRoutes.js");
+const analyticsRouter = require("./routes/analyticsRoutes.js");
 
 const app = express();
 
@@ -37,6 +38,8 @@ app.get("/health", async (req, res) => {
 app.use("/api/users", userRouter);
 
 app.use("/api/tasks", authMiddleware, taskRouter);
+
+app.use("/api/analytics", authMiddleware, analyticsRouter);
 
 //Week 2 timeRouter
 //const timeRouter = require("./routes/timeRoutes.js");

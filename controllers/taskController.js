@@ -10,6 +10,24 @@ const prisma = require("../db/prisma.js");
 //   };
 // })();
 
+//getOrderBy is a helper function that builds the orderBy object from query parameters
+const getOrderBy = (query) => {
+  const validSortFields = [
+    "title",
+    "priority",
+    "createdAt",
+    "id",
+    "isCompleted",
+  ];
+  const sortBy = query.sortBy || "createdAt";
+  const sortDirection = query.sortDirection === "asc" ? "asc" : "desc";
+
+  if (validSortFields.includes(sortBy)) {
+    return { [sortBy]: sortDirection };
+  }
+  return { createdAt: "desc" }; // default fallback
+};
+
 //use for functions that use an ID
 //const taskId = parseInt(req.params?.id);
 
@@ -35,7 +53,7 @@ async function create(req, res, next) {
   try {
     task = await prisma.task.create({
       data: { ...value, userId: global.user_id },
-      select: { title: true, isCompleted: true, id: true },
+      select: { title: true, isCompleted: true, id: true, priority: true },
     });
   } catch (err) {
     return next(err);
@@ -54,34 +72,145 @@ async function create(req, res, next) {
   return res.status(201).json(task);
 }
 
-async function index(req, res) {
-  //find the tasks owned by the logged-in user
-  //const userTasks = global.tasks.filter((task) => {
-  //  return task.userId === global.user_id.email;
-  //});
+async function bulkCreate(req, res, next) {
+  const { tasks } = req.body;
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      userId: global.user_id, //only the tasks for this user
-    },
-    select: { title: true, isCompleted: true, id: true },
-  });
+  //validate the tasks array
 
-  //return 404 if this user has no tasks
-
-  const userTasks = tasks;
-  if (userTasks.length === 0) {
-    return res.status(404).json({
-      message: "User has no tasks.",
+  if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+    return res.status(400).json({
+      error: "Invalid request data. Expected an array of tasks",
     });
   }
-  //return those tasks without userId
-  //const sanitizedUserTasks = userTasks.map((task) => {
-  //  const { userId, ...sanitizedTask } = task;
-  //  return sanitizedTask;
-  //});
 
-  return res.status(200).json(userTasks);
+  //validate all tasks before insertion
+
+  const validTasks = [];
+  for (const task of tasks) {
+    const { error, value } = taskSchema.validate(task);
+    if (error) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: error.details,
+      });
+    }
+
+    validTasks.push({
+      title: value.title,
+      isCompleted: value.isCompleted || false,
+      priority: value.priority || "medium",
+      userId: global.user_id,
+    });
+  }
+
+  //use createMany for batch insertion
+  try {
+    const result = await prisma.task.createMany({
+      data: validTasks,
+      skipDuplicates: false,
+    });
+
+    res.status(201).json({
+      message: "success!",
+      tasksCreated: result.count,
+      totalRequested: validTasks.length,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function index(req, res) {
+  //pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  // validate page and limit
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1 || limit > 100) {
+    return res.status(400).json({
+      error: "Invalid pagination parameters.",
+    });
+  }
+
+  const skip = (page - 1) * limit;
+
+  const whereClause = { userId: global.user_id };
+
+  if (req.query.find) {
+    whereClause.title = {
+      contains: req.query.find, // matches %find% pattern
+      mode: "insensitive", // case-insensitive search ILIKE in PostgreSQL
+    };
+  }
+
+  if (req.query.isCompleted !== undefined) {
+    whereClause.isCompleted = req.query.isCompleted === "true";
+  }
+
+  if (
+    req.query.priority &&
+    ["low", "medium", "high"].includes(req.query.priority)
+  ) {
+    whereClause.priority = req.query.priority;
+  }
+
+  if (req.query.min_date || req.query.max_date) {
+    whereClause.createdAt = {};
+
+    if (req.query.min_date) {
+      whereClause.createdAt.gte = new Date(req.query.min_date);
+    }
+
+    if (req.query.max_date) {
+      whereClause.createdAt.lte = new Date(req.query.max_date);
+    }
+  }
+
+  //get tasks with pagination and eager loading
+
+  const tasks = await prisma.task.findMany({
+    where: whereClause, //only the tasks for  this user
+    select: {
+      id: true,
+      title: true,
+      isCompleted: true,
+      priority: true,
+      createdAt: true,
+      User: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+    skip: skip,
+    take: limit,
+    orderBy: getOrderBy(req.query), // default behavior { createdAt: "desc" }
+  });
+
+  //get total count for pagination metadata
+  const totalTasks = await prisma.task.count({
+    where: whereClause,
+  });
+
+  // Build pagination object with complete metadata
+  // Hint: the test expects page, limit, total, pages, hasNext, hasPrev
+  // Use Math.ceil() to calculate pages, and compare page * limit with total for hasNext
+
+  const pagination = {
+    page,
+    limit,
+    total: totalTasks,
+    pages: Math.ceil(totalTasks / limit),
+    hasNext: page * limit < totalTasks,
+    hasPrev: page > 1,
+  };
+
+  //return tasks with pagination information
+  return res.status(200).json({
+    // ... you need to return tasks and pagination
+    tasks,
+    pagination,
+  });
 }
 
 async function show(req, res, next) {
@@ -103,7 +232,19 @@ async function show(req, res, next) {
           userId: global.user_id,
         },
       },
-      select: { title: true, isCompleted: true, id: true },
+      select: {
+        id: true,
+        title: true,
+        isCompleted: true,
+        priority: true,
+        createdAt: true,
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
   } catch (err) {
     if (err.code === "P2025") {
@@ -153,7 +294,7 @@ async function update(req, res, next) {
           userId: global.user_id,
         },
       },
-      select: { title: true, isCompleted: true, id: true },
+      select: { title: true, isCompleted: true, id: true, priority: true },
     });
   } catch (err) {
     if (err.code === "P2025") {
@@ -198,4 +339,4 @@ async function deleteTask(req, res, next) {
   return res.status(200).json(task);
 }
 
-module.exports = { create, index, show, update, deleteTask };
+module.exports = { create, bulkCreate, index, show, update, deleteTask };
