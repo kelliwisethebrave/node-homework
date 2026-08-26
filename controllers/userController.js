@@ -5,6 +5,26 @@ const scrypt = util.promisify(crypto.scrypt);
 
 const prisma = require("../db/prisma.js");
 
+const { randomUUID } = require("crypto");
+const jwt = require("jsonwebtoken");
+
+const cookieFlags = (req) => {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // only when HTTPS is available
+    sameSite: "Strict",
+  };
+};
+
+const setJwtCookie = (req, res, user) => {
+  // Sign JWT
+  const payload = { id: user.id, csrfToken: randomUUID() };
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" }); // 1 hour expiration
+  // Set cookie. Note that the cookie flags have to be different in production and in test.
+  res.cookie("jwt", token, { ...cookieFlags(req), maxAge: 3600000 }); // 1 hour expiration
+  return payload.csrfToken; //this is needed in the body returned by logon() or register()
+};
+
 //helper functions
 
 async function hashPassword(password) {
@@ -76,9 +96,7 @@ async function register(req, res, next) {
       return { user: newUser, welcomeTasks };
     });
 
-    // store the user ID globally for session management (not secure for production)
-
-    global.user_id = result.user.id;
+    const csrfToken = setJwtCookie(req, res, result.user);
 
     // send response with status 201
     res.status(201);
@@ -86,6 +104,7 @@ async function register(req, res, next) {
       user: result.user,
       welcomeTasks: result.welcomeTasks,
       transactionStatus: "success",
+      csrfToken,
     });
     return;
   } catch (err) {
@@ -125,11 +144,13 @@ async function logon(req, res) {
 
   // replace matchingUser below with goodCredentials
   if (goodCredentials) {
-    global.user_id = matchingUser.id;
+    // old way of doing it before conversion global.user_id = matchingUser.id;
+    const csrfToken = setJwtCookie(req, res, matchingUser);
 
     res.status(200).json({
       name: matchingUser.name,
       email: matchingUser.email,
+      csrfToken,
     });
   } else {
     res.status(401).json({ message: "Authentication required." });
@@ -172,7 +193,7 @@ async function show(req, res) {
 }
 
 function logoff(req, res) {
-  global.user_id = null;
+  res.clearCookie("jwt", cookieFlags(req));
   res.status(200).json({});
 }
 
