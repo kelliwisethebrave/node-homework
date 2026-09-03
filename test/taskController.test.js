@@ -159,3 +159,57 @@ describe("test getting created tasks", () => {
     expect(saveRes.statusCode).toBe(404);
   });
 });
+
+describe("test updating and deleting tasks", () => {
+  it("28. user1 can set the task corresponding to saveTaskId to isCompleted: true", async () => {
+    const req = httpMocks.createRequest({
+      method: "PATCH",
+      body: { isCompleted: true },
+    });
+    req.params = { id: saveTaskId.toString() };
+    req.user = { id: user1.id };
+    saveRes = httpMocks.createResponse({ eventEmitter: EventEmitter });
+    await waitForRouteHandlerCompletion(update, req, saveRes);
+    expect(saveRes.statusCode).toBe(200);
+  });
+  it("29. user2 can't set the task corresponding to saveTaskId to isCompleted: true", async () => {
+    const req = httpMocks.createRequest({
+      method: "PATCH",
+      body: { isCompleted: true },
+    });
+    req.params = { id: saveTaskId.toString() };
+    req.user = { id: user2.id };
+    saveRes = httpMocks.createResponse({ eventEmitter: EventEmitter });
+    await waitForRouteHandlerCompletion(update, req, saveRes);
+    expect(saveRes.statusCode).toBe(404);
+  });
+  it("30. user2 can't delete this task", async () => {
+    const req = httpMocks.createRequest({
+      method: "DELETE",
+    });
+    req.params = { id: saveTaskId.toString() };
+    req.user = { id: user2.id };
+    saveRes = httpMocks.createResponse({ eventEmitter: EventEmitter });
+    await waitForRouteHandlerCompletion(deleteTask, req, saveRes);
+    expect(saveRes.statusCode).toBe(404);
+  });
+  it("31. user1 can delete this task", async () => {
+    const req = httpMocks.createRequest({
+      method: "DELETE",
+    });
+    req.params = { id: saveTaskId.toString() };
+    req.user = { id: user1.id };
+    saveRes = httpMocks.createResponse({ eventEmitter: EventEmitter });
+    await waitForRouteHandlerCompletion(deleteTask, req, saveRes);
+    expect(saveRes.statusCode).toBe(200);
+  });
+  it("32. retrieving user1's tasks now returns a 404", async () => {
+    const req = httpMocks.createRequest({
+      method: "GET",
+    });
+    req.user = { id: user1.id };
+    saveRes = httpMocks.createResponse({ eventEmitter: EventEmitter });
+    await waitForRouteHandlerCompletion(index, req, saveRes);
+    expect(saveRes.statusCode).toBe(404);
+  });
+});
