@@ -1,4 +1,4 @@
-const waitForRouteHandlerCompletion = async (func, reg, res) => {
+const waitForRouteHandlerCompletion = async (func, req, res) => {
   let next;
   const promise = new Promise((resolve, reject) => {
     next = jest.fn((error) => {
@@ -9,7 +9,7 @@ const waitForRouteHandlerCompletion = async (func, reg, res) => {
       resolve();
     });
   });
-  await func(feq, res, next);
+  await func(req, res, next);
   await promise;
   return next;
 };
