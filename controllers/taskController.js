@@ -205,6 +205,9 @@ async function index(req, res) {
     hasPrev: page > 1,
   };
 
+  if (totalTasks === 0)
+    return res.status(404).json({ message: "No tasks were found." });
+
   //return tasks with pagination information
   return res.status(200).json({
     // ... you need to return tasks and pagination
