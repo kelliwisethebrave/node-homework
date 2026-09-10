@@ -21,7 +21,7 @@ app.use(
   }),
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
