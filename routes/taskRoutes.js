@@ -7,7 +7,10 @@ taskRouter.get("/", taskController.index);
 taskRouter.get("/:id", taskController.show);
 taskRouter.post("/bulk", taskController.bulkCreate);
 taskRouter.post("/", taskController.create);
+taskRouter.patch("/:id/restore", taskController.restoreTask);
 taskRouter.patch("/:id", taskController.update);
+taskRouter.delete("/:id/permanent", taskController.permanentlyDeleteTask);
+taskRouter.delete("/trash", taskController.emptyTrash);
 taskRouter.delete("/:id", taskController.deleteTask);
 
 module.exports = taskRouter;

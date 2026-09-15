@@ -133,7 +133,7 @@ async function index(req, res) {
 
   const skip = (page - 1) * limit;
 
-  const whereClause = { userId: req.user.id };
+  const whereClause = { userId: req.user.id, trash: false };
 
   if (req.query.find) {
     whereClause.title = {
@@ -144,6 +144,10 @@ async function index(req, res) {
 
   if (req.query.isCompleted !== undefined) {
     whereClause.isCompleted = req.query.isCompleted === "true";
+  }
+
+  if (req.query.trash !== undefined) {
+    whereClause.trash = req.query.trash === "true";
   }
 
   if (
@@ -234,6 +238,7 @@ async function show(req, res, next) {
           id: taskId,
           userId: req.user.id,
         },
+        trash: false,
       },
       select: {
         id: true,
@@ -296,8 +301,42 @@ async function update(req, res, next) {
           id: taskId,
           userId: req.user.id,
         },
+        trash: false,
       },
       select: { title: true, isCompleted: true, id: true, priority: true },
+    });
+  } catch (err) {
+    if (err.code === "P2025") {
+      return res.status(404).json({ message: "The task was not found." });
+    } else {
+      return next(err); // pass other errors to the global error handler
+    }
+  }
+
+  return res.status(200).json(task);
+}
+
+async function restoreTask(req, res, next) {
+  //read req.params.id (convert req.params.id to a number)
+  const taskId = parseInt(req.params?.id);
+
+  if (!taskId) {
+    return res.status(400).json({
+      message: "The task ID passed is not valid.",
+    });
+  }
+
+  let task = null;
+  try {
+    task = await prisma.task.update({
+      where: {
+        id_userId: {
+          id: taskId,
+          userId: req.user.id,
+        },
+      },
+      data: { trash: false },
+      select: { title: true, isCompleted: true, id: true, trash: true },
     });
   } catch (err) {
     if (err.code === "P2025") {
@@ -322,14 +361,15 @@ async function deleteTask(req, res, next) {
 
   let task = null;
   try {
-    task = await prisma.task.delete({
+    task = await prisma.task.update({
       where: {
         id_userId: {
           id: taskId,
           userId: req.user.id,
         },
       },
-      select: { title: true, isCompleted: true, id: true },
+      data: { trash: true },
+      select: { title: true, isCompleted: true, id: true, trash: true },
     });
   } catch (err) {
     if (err.code === "P2025") {
@@ -342,4 +382,80 @@ async function deleteTask(req, res, next) {
   return res.status(200).json(task);
 }
 
-module.exports = { create, bulkCreate, index, show, update, deleteTask };
+async function emptyTrash(req, res, next) {
+  try {
+    const deletedTasksfromTrash = await prisma.task.deleteMany({
+      where: {
+        userId: req.user.id,
+        trash: true,
+      },
+    });
+    return res.status(200).json(deletedTasksfromTrash);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function permanentlyDeleteTask(req, res, next) {
+  //read req.params.id (convert req.params.id to a number)
+  const taskId = parseInt(req.params?.id);
+
+  if (!taskId) {
+    return res.status(400).json({
+      message: "The task ID passed is not valid.",
+    });
+  }
+
+  try {
+    const task = await prisma.task.findUnique({
+      where: {
+        id_userId: {
+          id: taskId,
+          userId: req.user.id,
+        },
+      },
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        message: "The task was not found.",
+      });
+    }
+
+    if (task.trash === false) {
+      return res.status(400).json({
+        message:
+          "This task is not in the trash and cannot be permanently deleted at this time.",
+      });
+    }
+
+    const deletedTask = await prisma.task.delete({
+      where: {
+        id_userId: {
+          id: taskId,
+          userId: req.user.id,
+        },
+      },
+      select: { title: true, isCompleted: true, id: true },
+    });
+    return res.status(200).json(deletedTask);
+  } catch (err) {
+    if (err.code === "P2025") {
+      return res.status(404).json({ message: "The task was not found." });
+    } else {
+      return next(err); // pass other errors to the global error handler
+    }
+  }
+}
+
+module.exports = {
+  create,
+  bulkCreate,
+  index,
+  show,
+  update,
+  restoreTask,
+  deleteTask,
+  emptyTrash,
+  permanentlyDeleteTask,
+};
