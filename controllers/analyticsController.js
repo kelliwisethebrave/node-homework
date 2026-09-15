@@ -20,7 +20,7 @@ async function getUserAnalytics(req, res) {
   //use group by to count tasks by completion status
   const taskStats = await prisma.task.groupBy({
     by: ["isCompleted"],
-    where: { userId },
+    where: { userId, trash: false },
     _count: {
       id: true,
     },
@@ -28,7 +28,7 @@ async function getUserAnalytics(req, res) {
 
   // include recent task activity with eager loading
   const recentTasks = await prisma.task.findMany({
-    where: { userId },
+    where: { userId, trash: false },
     select: {
       id: true,
       title: true,
@@ -56,12 +56,13 @@ async function getUserAnalytics(req, res) {
     by: ["createdAt"],
     where: {
       userId,
+      trash: false,
       createdAt: { gte: oneWeekAgo },
     },
     _count: { id: true },
   });
 
-  //return response with taskStates, recentTasks, and weeklyProgress
+  //return response with taskStats, recentTasks, and weeklyProgress
   res.status(200).json({
     taskStats,
     recentTasks,
@@ -89,7 +90,7 @@ async function getUsersWithStats(req, res) {
   const usersRaw = await prisma.user.findMany({
     include: {
       Task: {
-        where: { isCompleted: false },
+        where: { isCompleted: false, trash: false },
         select: { id: true },
         take: 5,
       },
