@@ -1,1 +1,10 @@
 https://node-homework-kellichat.onrender.com
+
+Add trash feature:
+Add trash field to Task model and database migration
+Update deleteTask to soft delete tasks
+Add permanentlyDeleteTask function and route
+Add restoreTask function and route
+Add emptyTrash function and route
+Update index to view active or trashed tasks
+Update show and update to prevent access to trashed tasks
