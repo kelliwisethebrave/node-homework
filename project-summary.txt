@@ -2,8 +2,9 @@ https://node-homework-kellichat.onrender.com
 
 Extra back-end feature: Recycle Bin
 
+Changes:
 
-Add trash field to Task model and database migration
+Add trash field to the Task model and database migration
 Update deleteTask to soft delete tasks
 Add permanentlyDeleteTask function and route
 Add restoreTask function and route
@@ -11,23 +12,29 @@ Add emptyTrash function and route
 Update index to view active or trashed tasks
 Update show and update to prevent access to trashed tasks
 
+DELETE /api/tasks/
 
+deleteTask has been updated to soft delete tasks instead of permanently deleting them. The path remains the same (/api/tasks/:id), but it now updates the task's trash field to true.
 
-DELETE /api/tasks/:id
-deleteTask has been updated to soft delete tasks instead of hard delete.
-The path remains the same (/api/tasks/:id) but now updates the trash field to true. 
+DELETE /api/tasks//permanent
 
-DELETE /api/tasks/:id/permanent
-permanentlyDeleteTask has been added, and after verifying that a task is in the trash, it will delete the task from the database.
+permanentlyDeleteTask permanently deletes an individual task from the database after verifying that the task is already in the Recycle Bin.
 
-PATCH /api/tasks/:id/restore
-restoreTask has been added, which marks the trash field as false, and allows the task to be viewed and used by functions as normal.
-No request body required.
+PATCH /api/tasks//restore
+
+restoreTask restores a task by setting its trash field to false, allowing the task to be viewed and modified normally again.
+
+No request body is required.
 
 DELETE /api/tasks/trash
-emptyTrash has been added, which hard deletes all of the tasks marked as trash which belong to the logged-in user.
+
+emptyTrash permanently deletes all tasks marked as trash: true that belong to the logged-in user.
 
 GET /api/tasks?trash=true
-index has been updated, to normally hide tasks in the Recycle Bin, and to also show them when ?trash=true is added to the route.
 
-show and update have been updated to prevent access to tasks in the Recycle Bin.
+index normally excludes tasks in the Recycle Bin. Adding the ?trash=true query parameter returns the logged-in user's trashed tasks instead.
+
+GET /api/tasks/
+PATCH /api/tasks/
+
+show and update have been updated so that tasks in the Recycle Bin cannot be accessed or modified through the normal task routes.
